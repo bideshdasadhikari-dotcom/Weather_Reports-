@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Report</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* --- BASE STYLES --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+             background-color: #424250;  
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            padding: 20px;
+            box-sizing: border-box;
+            /* Set the uploaded image as the background */
+            background-image: url("img.jpg");
+        }
+
+        .weather-card {
+            background: rgba(8, 5, 5, 0.65); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            width: 100%;
+            max-width: 1200px; /* Perfect laptop width */
+            max-height: 95vh;
+            overflow-y: auto;
+            text-align: center;
+        }
+
+        .weather-card::-webkit-scrollbar { display: none; }
+        .weather-card { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .weather-card h2, .weather-card h3, .weather-card h4, .weather-card p, .weather-card span, .weather-card div {
+            color: #ffffff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8); 
+        }
+
+        /* --- CONTROL PANEL --- */
+        .controls-container { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            margin-bottom: 30px; 
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .search-row { display: flex; gap: 10px; }
+        .action-row { display: flex; justify-content: space-between; gap: 10px; }
+
+        input[type="text"], input[type="date"] {
+            flex-grow: 1; padding: 14px; border-radius: 10px; border: none; outline: none;
+            background: rgba(255, 255, 255, 0.9); color: #222 !important; font-size: 1.05rem; text-shadow: none !important; font-family: inherit;
+        }
+
+        .search-btn, .action-btn {
+            padding: 14px; border-radius: 10px; border: none; color: white; cursor: pointer;
+            font-weight: bold; transition: 0.2s; text-shadow: none !important; font-size: 1rem; flex: 1;
+        }
+
+        .search-btn { background: #ff7e5f; flex: 0.4; }
+        .search-btn:hover { background: #e06c50; }
+        .location-btn { background: #e67e22; }
+        .location-btn:hover { background: #d35400; }
+        .map-btn { background: #2ecc71; }
+        .map-btn:hover { background: #27ae60; }
+        .date-input:hover { background: white; }
+
+        /* --- MAIN WEATHER DISPLAY --- */
+        .current-time { font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 5px; opacity: 0.9; }
+        #dateContext { margin: 5px 0 20px 0; color: #f1c40f; letter-spacing: 1px; font-size: 1.1rem;}
+        .temp-display { font-size: 6rem; font-weight: bold; margin: 15px 0; }
+        .details { display: flex; justify-content: space-around; margin-top: 20px; font-size: 1.1rem; width: 100%;}
+        .divider { margin: 25px 0; border: 0; height: 1px; background: rgba(255, 255, 255, 0.3); }
+        .icon-container { height: 120px; display: flex; justify-content: center; align-items: center; margin: 10px 0; font-size: 80px; }
+
+        /* --- CHART CONTAINER --- */
+        .chart-container {
+            width: 100%;
+            height: 250px; 
+            margin: 0 0 25px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-sizing: border-box;
+        }
+
+        /* --- EXTENDED WEATHER --- */
+        .extended-weather h3 { font-size: 1.2rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; text-align: left; padding-left: 5px;}
+        .weather-row { display: flex; flex-direction: row; justify-content: space-between; gap: 15px; margin-bottom: 25px; }
+        .day-card { flex: 1; background: rgba(255, 255, 255, 0.15); padding: 15px 10px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); text-align: center; transition: transform 0.2s;}
+        .day-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.25); }
+        .day-card p { margin: 5px 0; }
+        .date { font-size: 1rem; opacity: 0.9; }
+        .small-icon { font-size: 2.2rem; margin: 10px 0; }
+        .small-temp { font-weight: bold; font-size: 1.3rem; }
+
+        /* --- LAPTOP RESPONSIVE GRID LAYOUT --- */
+        @media (min-width: 900px) {
+            .controls-container {
+                flex-direction: row;
+                max-width: 100%;
+            }
+            .search-row { flex: 2; }
+            .action-row { flex: 3; }
+
+            .result-area {
+                display: grid;
+                grid-template-columns: 1fr 2.2fr; /* Left column narrower, right column wider */
+                gap: 40px;
+                text-align: center;
+            }
+            .current-info {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                border-right: 1px solid rgba(255, 255, 255, 0.2);
+                padding-right: 40px;
+            }
+            .forecast-info {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+            .divider { display: none; } /* Hide horizontal divider on desktop */
+            .extended-weather {
+                display: flex;
+                gap: 20px;
+            }
+            .history-section, .forecast-section {
+                flex: 1;
+            }
+            .weather-row { flex-wrap: wrap; margin-bottom: 0;}
+            .day-card { min-width: calc(33.33% - 15px); }
+        }
+
+        /* --- GOOGLE MAPS MODAL --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 800px; text-align: center; position: relative; }
+        .modal-content h3 { color: #333; text-shadow: none; margin-bottom: 20px; font-size: 1.5rem;}
+        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 1.8rem; cursor: pointer; color: #333; text-shadow: none; transition: color 0.2s;}
+        .close-btn:hover { color: #e74c3c; }
+        #map { height: 450px; width: 100%; margin: 20px 0; border-radius: 10px; z-index: 1; border: 1px solid #ddd;}
+        .confirm-btn { background: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; width: 100%; text-shadow: none; font-weight: bold;}
+        .confirm-btn:hover { background: #2980b9; }
+
+        /* MAP AUTOCOMPLETE */
+        .map-search-wrapper { position: relative; width: 100%; text-align: left; }
+        .map-search-container { display: flex; gap: 8px; }
+        .map-search-container input { border: 1px solid #ccc; padding: 12px; background: #fff; color: #333 !important;}
+        .map-search-btn { background: #2ecc71; border-radius: 8px; padding: 0 25px; text-shadow: none !important; border: none; color: white; cursor: pointer; font-weight: bold;}
+        .map-search-btn:hover { background: #27ae60; }
+        .suggestions-box { display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-height: 200px; overflow-y: auto; z-index: 1001; margin-top: 5px; }
+        .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; color: #333; font-size: 1rem; }
+        .suggestion-item:hover { background: #f1f1f1; }
+        .suggestion-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="weather-card" id="mainCard">
+        
+        <div class="controls-container">
+            <div class="search-row">
+                <input type="text" id="cityInput" placeholder="Enter village or city name...">
+                <button class="search-btn" onclick="getWeather()">🔍 Search</button>
+            </div>
+            <div class="action-row">
+                <button class="action-btn location-btn" onclick="getLocation()" title="Current Location">📍 Local</button>
+                <button class="action-btn map-btn" onclick="openMap()" title="Choose on map">🗺️ Map</button>
+                <input type="date" id="datePicker" class="action-btn date-input" onchange="fetchDateWeather()" title="Pick a specific date">
+            </div>
+        </div>
+        
+        <div class="result-area">
+            <div class="current-info">
+                <div id="timeDisplay" class="current-time">00:00:00 AM</div>
+                
+                <h2 id="cityName">Search for a Location</h2>
+                <h4 id="dateContext">Right Now</h4> 
+                
+                <div id="iconBox" class="icon-container">☁️</div>
+                <p id="description">Conditions: --</p>
+
+                <div class="temp-display">
+                    <span id="temperature">--</span>°C
+                </div>
+                
+                <div class="details">
+                    <span>Humidity: <strong id="humidity">--</strong>%</span>
+                    <span>Wind: <strong id="wind">--</strong> km/h</span>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="forecast-info">
+                <div class="chart-container">
+                    <canvas id="weatherChart"></canvas>
+                </div>
+
+                <div class="extended-weather">
+                    <div class="history-section">
+                        <h3>Last 3 Days</h3>
+                        <div class="weather-row" id="historyRow"></div>
+                    </div>
+
+                    <div class="forecast-section">
+                        <h3>Next 3 Days</h3>
+                        <div class="weather-row" id="forecastRow"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mapModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeMap()">&times;</span>
+            <h3 style="margin-top: 0; color: #333;">Select Location</h3>
+            
+            <div class="map-search-wrapper">
+                <div class="map-search-container">
+                    <input type="text" id="mapSearchInput" placeholder="Search a village or place..." oninput="handleMapSearchInput()" autocomplete="off">
+                    <button onclick="searchInMap()" class="map-search-btn">🔍 Go</button>
+                </div>
+                <div id="mapSuggestions" class="suggestions-box"></div>
+            </div>
+
+            <div id="map"></div>
+            <button onclick="confirmLocation()" class="confirm-btn">Get Weather Here</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let currentLat = null;
+        let currentLon = null;
+        let currentCityName = "Search for a Location";
+        let weatherChartInstance = null; 
+
+        // --- 0. CLOCK ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('timeDisplay').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        window.onload = () => {
+            const today = new Date();
+            const maxDate = new Date(today); maxDate.setDate(today.getDate() + 14);
+            const minDate = new Date(today); minDate.setDate(today.getDate() - 90);
+            document.getElementById('datePicker').max = maxDate.toISOString().split("T")[0];
+            document.getElementById('datePicker').min = minDate.toISOString().split("T")[0];
+        };
+
+        // --- 1. MAIN SEARCH LOGIC ---
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => fetchWeatherData(pos.coords.latitude, pos.coords.longitude, "Your Location"),
+                    () => alert("Unable to retrieve location. Check permissions.")
+                );
+            } else alert("Geolocation is not supported by your browser.");
+        }
+
+        // UPDATED: Now uses OpenStreetMap (Nominatim) for main search
+        async function getWeather() {
+            const city = document.getElementById('cityInput').value.trim();
+            if (!city) return alert("Please enter a village or city name");
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
+                const data = await res.json();
+                
+                if (!data || data.length === 0) throw new Error("Location not found. Try adding the state or country.");
+                
+                // Get a clean short name from the display name
+                const shortName = data[0].name || data[0].display_name.split(',')[0];
+                fetchWeatherData(data[0].lat, data[0].lon, shortName);
+            } catch (err) { alert(err.message); }
+        }
+
+        async function fetchWeatherData(lat, lon, cityName) {
+            currentLat = lat; currentLon = lon; currentCityName = cityName;
+            document.getElementById('datePicker').value = "";
+            document.getElementById('dateContext').innerText = "Right Now";
+
+            try {
+                // Fetch current + next 3 days + past 3 days + hourly for graph
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&hourly=temperature_2m&daily=weather_code,temperature_2m_max&past_days=3&forecast_days=4&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                document.getElementById('cityName').innerText = cityName;
+                document.getElementById('temperature').innerText = Math.round(data.current.temperature_2m);
+                document.getElementById('humidity').innerText = data.current.relative_humidity_2m;
+                document.getElementById('wind').innerText = data.current.wind_speed_10m;
+                
+                setMainWeatherIcon(data.current.weather_code);
+                updateExtendedWeather(data.daily);
+                
+                renderHourlyGraph(data.hourly.time, data.hourly.temperature_2m);
+            } catch (err) { alert("Error fetching weather: " + err.message); }
+        }
+
+        // --- 2. SPECIFIC DATE LOGIC ---
+        async function fetchDateWeather() {
+            const selectedDate = document.getElementById('datePicker').value;
+            if (!selectedDate) return;
+            if (currentLat === null) return alert("Please search for a location or use local first!");
+
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&start_date=${selectedDate}&end_date=${selectedDate}&hourly=temperature_2m&daily=weather_code,temperature_2m_max,wind_speed_10m_max&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!data.daily || data.daily.time.length === 0) return alert("Data not available for this date.");
+
+                document.getElementById('dateContext').innerText = "Forecast for: " + formatDate(selectedDate);
+                document.getElementById('temperature').innerText = Math.round(data.daily.temperature_2m_max[0]);
+                document.getElementById('wind').innerText = data.daily.wind_speed_10m_max[0];
+                document.getElementById('humidity').innerText = "--"; 
+                
+                setMainWeatherIcon(data.daily.weather_code[0]);
+                renderHourlyGraph(data.hourly.time, data.hourly.temperature_2m, true);
+            } catch (err) { alert("Error fetching date: " + err.message); }
+        }
+
+        // --- 3. CHART.JS GRAPH RENDERING ---
+        function renderHourlyGraph(times, temps, isSpecificDate = false) {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            let startIndex = 0;
+
+            if (!isSpecificDate) {
+                const now = new Date();
+                startIndex = times.findIndex(t => new Date(t) >= now);
+                if (startIndex === -1) startIndex = 0; 
+            }
+            
+            const displayTimes = times.slice(startIndex, startIndex + 24).map(t => {
+                const date = new Date(t);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            });
+            const displayTemps = temps.slice(startIndex, startIndex + 24);
+
+            if (weatherChartInstance) weatherChartInstance.destroy();
+
+            weatherChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: displayTimes,
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: displayTemps,
+                        borderColor: '#f1c40f',
+                        backgroundColor: 'rgba(241, 196, 15, 0.2)',
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#fff',
+                        fill: true,
+                        tension: 0.4 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: { label: function(context) { return context.parsed.y + '°C'; } }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: 'rgba(255, 255, 255, 0.8)', maxTicksLimit: 8 }, grid: { display: false } },
+                        y: { ticks: { color: 'rgba(255, 255, 255, 0.8)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+                    }
+                }
+            });
+        }
+
+        // --- 4. UI HELPERS ---
+        function setMainWeatherIcon(code) {
+            const card = document.getElementById('mainCard');
+            const iconBox = document.getElementById('iconBox');
+            const desc = document.getElementById('description');
+            
+            card.classList.remove('sunny', 'rainy', 'snowy');
+            if (code <= 3) { card.classList.add('sunny'); iconBox.innerHTML = '☀️'; desc.innerText = "Clear Skies"; } 
+            else if (code >= 51 && code <= 67) { card.classList.add('rainy'); iconBox.innerHTML = '🌧️'; desc.innerText = "Raining"; } 
+            else if (code >= 71) { card.classList.add('snowy'); iconBox.innerHTML = '❄️'; desc.innerText = "Snowing"; } 
+            else { iconBox.innerHTML = '☁️'; desc.innerText = "Cloudy"; }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function updateExtendedWeather(dailyData) {
+            document.getElementById('historyRow').innerHTML = `
+                ${createDayCard(dailyData.weather_code[2], dailyData.temperature_2m_max[2], formatDate(dailyData.time[2]))}
+                ${createDayCard(dailyData.weather_code[1], dailyData.temperature_2m_max[1], formatDate(dailyData.time[1]))}
+                ${createDayCard(dailyData.weather_code[0], dailyData.temperature_2m_max[0], formatDate(dailyData.time[0]))}
+            `;
+            document.getElementById('forecastRow').innerHTML = `
+                ${createDayCard(dailyData.weather_code[4], dailyData.temperature_2m_max[4], formatDate(dailyData.time[4]))}
+                ${createDayCard(dailyData.weather_code[5], dailyData.temperature_2m_max[5], formatDate(dailyData.time[5]))}
+                ${createDayCard(dailyData.weather_code[6], dailyData.temperature_2m_max[6], formatDate(dailyData.time[6]))}
+            `;
+        }
+
+        function createDayCard(code, temp, label) {
+            let emoji = '☁️';
+            if (code <= 3) emoji = '☀️'; else if (code >= 51 && code <= 67) emoji = '🌧️'; else if (code >= 71) emoji = '❄️';
+            return `<div class="day-card"><p class="date">${label}</p><div class="small-icon">${emoji}</div><p class="small-temp">${Math.round(temp)}°C</p></div>`;
+        }
+
+        // --- 5. MAP LOGIC WITH AUTOCOMPLETE ---
+        let map, mapMarker, selectedLat = 20.5937, selectedLon = 78.9629; 
+        let searchTimeout = null; 
+
+        function openMap() {
+            document.getElementById('mapModal').style.display = 'flex';
+            document.getElementById('mapSearchInput').value = ""; 
+            document.getElementById('mapSuggestions').style.display = "none"; 
+
+            if (!map) {
+                map = L.map('map').setView([selectedLat, selectedLon], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                mapMarker = L.marker([selectedLat, selectedLon], {draggable: true}).addTo(map);
+                
+                mapMarker.on('dragend', () => { selectedLat = mapMarker.getLatLng().lat; selectedLon = mapMarker.getLatLng().lng; });
+                map.on('click', (e) => { selectedLat = e.latlng.lat; selectedLon = e.latlng.lng; mapMarker.setLatLng([selectedLat, selectedLon]); });
+            }
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+
+        function closeMap() { document.getElementById('mapModal').style.display = 'none'; }
+
+        // UPDATED: Now uses OpenStreetMap (Nominatim) for map autocomplete
+        async function handleMapSearchInput() {
+            const query = document.getElementById('mapSearchInput').value.trim();
+            const suggestionsBox = document.getElementById('mapSuggestions');
+
+            if (query.length < 2) {
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            // Increased timeout to 600ms to respect OpenStreetMap's server limits
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+                    const data = await res.json();
+
+                    if (!data || data.length === 0) {
+                        suggestionsBox.style.display = 'none';
+                        return;
+                    }
+
+                    suggestionsBox.innerHTML = '';
+                    data.forEach(place => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        // Nominatim returns full address in display_name
+                        div.innerText = place.display_name; 
+                        
+                        div.onclick = () => {
+                            // Extract just the shortest name for the input box
+                            const shortName = place.name || place.display_name.split(',')[0];
+                            document.getElementById('mapSearchInput').value = shortName;
+                            suggestionsBox.style.display = 'none'; 
+                            
+                            selectedLat = place.lat;
+                            selectedLon = place.lon;
+                            map.setView([selectedLat, selectedLon], 10);
+                            mapMarker.setLatLng([selectedLat, selectedLon]);
+                        };
+                        suggestionsBox.appendChild(div);
+                    });
+                    
+                    suggestionsBox.style.display = 'block';
+
+                } catch (err) {
+                    console.error("Error fetching suggestions:", err);
+                }
+            }, 600); 
+        }
+
+        // UPDATED: Now uses OpenStreetMap (Nominatim) for map search button
+        async function searchInMap() {
+            const query = document.getElementById('mapSearchInput').value.trim();
+            if (!query) return;
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                const data = await res.json();
+                if (!data || data.length === 0) return alert("Location not found.");
+                
+                selectedLat = data[0].lat;
+                selectedLon = data[0].lon;
+                map.setView([selectedLat, selectedLon], 10); 
+                mapMarker.setLatLng([selectedLat, selectedLon]);
+                document.getElementById('mapSuggestions').style.display = 'none';
+            } catch (err) { alert("Error searching map: " + err.message); }
+        }
+
+        async function confirmLocation() {
+            closeMap();
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${selectedLat}&lon=${selectedLon}`);
+                const data = await res.json();
+                
+                // Nominatim reverse geocoding fallback logic for names
+                let placeName = "Map Location";
+                if (data && data.address) {
+                    placeName = data.address.village || data.address.town || data.address.city || data.address.suburb || data.address.state || "Map Location";
+                }
+                
+                fetchWeatherData(selectedLat, selectedLon, placeName);
+            } catch (e) { fetchWeatherData(selectedLat, selectedLon, "Map Location"); }
+        }
+    </script>
+</body>
+</html>

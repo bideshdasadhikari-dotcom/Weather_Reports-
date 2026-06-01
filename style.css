@@ -1,0 +1,120 @@
+/* --- BASE STYLES --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #1a1a2e; 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image 1.5s ease-in-out;
+   background-image: url('image_2.jpg');
+}
+
+.weather-card {
+    background: rgba(0, 0, 0, 0.65); 
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-align: center;
+    width: 100%;
+    max-width: 450px; 
+    max-height: 95vh;
+    overflow-y: auto;
+}
+
+.weather-card::-webkit-scrollbar { display: none; }
+.weather-card { -ms-overflow-style: none; scrollbar-width: none; }
+
+.weather-card h2, .weather-card h3, .weather-card h4, .weather-card p, .weather-card span, .weather-card div {
+    color: #ffffff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8); 
+}
+
+/* --- CONTROL PANEL (SEARCH, MAP, CALENDAR) --- */
+.controls-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.search-row { display: flex; gap: 8px; }
+.action-row { display: flex; justify-content: space-between; gap: 8px; }
+
+input[type="text"] {
+    flex-grow: 1; padding: 12px; border-radius: 10px; border: none; outline: none;
+    background: rgba(255, 255, 255, 0.9); color: #222 !important; font-size: 1rem; text-shadow: none !important; 
+}
+
+.search-btn, .action-btn {
+    padding: 12px; border-radius: 10px; border: none; color: white; cursor: pointer;
+    font-weight: bold; transition: 0.2s; text-shadow: none !important; font-size: 0.95rem; flex: 1;
+}
+
+.search-btn { background: #ff7e5f; flex: 0.4; }
+.search-btn:hover { background: #e06c50; }
+.location-btn { background: #e67e22; }
+.location-btn:hover { background: #d35400; }
+.map-btn { background: #2ecc71; }
+.map-btn:hover { background: #27ae60; }
+
+.date-input { background: rgba(255, 255, 255, 0.9); color: #333 !important; text-shadow: none !important; padding: 10px; font-family: inherit;}
+.date-input:hover { background: white; }
+
+/* --- MAIN WEATHER DISPLAY --- */
+.current-time { font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 5px; opacity: 0.9; }
+#dateContext { margin: 5px 0 15px 0; color: #f1c40f; letter-spacing: 1px; }
+.temp-display { font-size: 4.5rem; font-weight: bold; margin: 10px 0; }
+.details { display: flex; justify-content: space-around; margin-top: 15px; font-size: 1rem; }
+.divider { margin: 25px 0; border: 0; height: 1px; background: rgba(255, 255, 255, 0.3); }
+.icon-container { height: 80px; display: flex; justify-content: center; align-items: center; margin: 10px 0; font-size: 50px; }
+
+/* --- EXTENDED WEATHER --- */
+.extended-weather h3 { font-size: 1.1rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+.weather-row { display: flex; flex-direction: row; justify-content: space-between; gap: 12px; margin-bottom: 25px; }
+.day-card { flex: 1; background: rgba(255, 255, 255, 0.15); padding: 15px 10px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); text-align: center; }
+.day-card p { margin: 5px 0; }
+.date { font-size: 0.9rem; opacity: 0.9; }
+.small-icon { font-size: 1.8rem; margin: 8px 0; }
+.small-temp { font-weight: bold; font-size: 1.1rem; }
+
+/* --- GOOGLE MAPS MODAL --- */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 500px; text-align: center; position: relative; }
+.modal-content h3 { color: #333; text-shadow: none; margin-bottom: 15px;}
+.close-btn { position: absolute; right: 20px; top: 15px; font-size: 1.5rem; cursor: pointer; color: #333; text-shadow: none; }
+#map { height: 300px; width: 100%; margin: 15px 0; border-radius: 10px; z-index: 1; border: 1px solid #ddd;}
+.confirm-btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; width: 100%; text-shadow: none;}
+.confirm-btn:hover { background: #2980b9; }
+
+/* NEW: In-Map Search Bar & Autocomplete Suggestions Styles */
+.map-search-wrapper { position: relative; width: 100%; text-align: left; }
+.map-search-container { display: flex; gap: 5px; }
+.map-search-container input { border: 1px solid #ccc; padding: 10px; background: #fff; color: #333 !important;}
+.map-search-btn { background: #2ecc71; border-radius: 8px; padding: 0 20px; text-shadow: none !important; border: none; color: white; cursor: pointer;}
+.map-search-btn:hover { background: #27ae60; }
+
+.suggestions-box {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1001; /* Keeps it above the map */
+    margin-top: 5px;
+}
+.suggestion-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    color: #333;
+    font-size: 0.9rem;
+}
+.suggestion-item:hover { background: #f1f1f1; }
+.suggestion-item:last-child { border-bottom: none; }
